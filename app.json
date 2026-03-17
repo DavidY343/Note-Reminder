@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Note-Reminder",
-    "slug": "Note-Reminder",
+    "name": "Mementos",
+    "slug": "mementos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

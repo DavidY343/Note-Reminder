@@ -95,10 +95,10 @@ export default function HomeScreen({ navigation }: Props) {
   const renderRightActions = (id: string) => {
     return (
       <TouchableOpacity 
-        style={styles.deleteAction} 
+        style={[styles.deleteAction, { backgroundColor: darkMode ? '#3d1a1a' : '#efebe9' }]} 
         onPress={() => deleteNote(id)}
       >
-        <Ionicons name="trash-outline" size={28} color="#fff" />
+        <Ionicons name="archive-outline" size={28} color="#b71c1c" />
       </TouchableOpacity>
     );
   };
@@ -142,7 +142,7 @@ export default function HomeScreen({ navigation }: Props) {
       <View style={styles.vintageHeader}>
         <View>
           <Text style={[styles.vintageSub, { color: theme.subText }]}>THE COLLECTION OF</Text>
-          <Text style={[styles.title, { color: theme.text }]}>Personal Archives</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Mementos</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity 
@@ -202,7 +202,7 @@ export default function HomeScreen({ navigation }: Props) {
       >
         <View style={styles.infoOverlay}>
           <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Manual de Uso</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Manual de Mementos</Text>
             <ScrollView style={styles.infoContent}>
               <InfoItem icon="add-circle" title="Crear Notas" desc="Usa el botón '+' para añadir una nueva nota. Puedes dictarla con el micrófono." theme={theme} />
               <InfoItem icon="alarm" title="Alarmas" desc="Activa 'Enable Alarm' para recibir una notificación en la hora elegida." theme={theme} />
@@ -413,12 +413,14 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   deleteAction: {
-    backgroundColor: '#ef4444',
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
     height: '100%',
-    borderRadius: 16,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: '#d7ccc8',
+    borderStyle: 'dashed',
   },
   modalOverlay: {
     flex: 1,
