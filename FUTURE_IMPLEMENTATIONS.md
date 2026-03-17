@@ -1,54 +1,30 @@
-# 🚀 Futuras Implementaciones - Note-Reminder
+# ✅ Logros y Funcionalidades - Personal Archives
 
-Este documento detalla las ideas y planes para la evolución de la aplicación, enfocándose en la integración con ecosistemas externos y la automatización mediante IA.
-
----
-
-## 1. Integración con Google Calendar 📅
-**Objetivo:** Sincronizar automáticamente las notas que tengan una alarma configurada con el calendario personal del usuario.
-
-### Detalles:
-- **Funcionalidad:** Al crear una nota con fecha y hora, se creará un evento correspondiente en Google Calendar.
-- **Sincronización:** Posibilidad de actualizar o eliminar el evento si la nota cambia en la app.
-- **Tecnología sugerida:** 
-  - `expo-calendar` para acceso nativo al calendario del dispositivo.
-  - Google Calendar API (v3) mediante OAuth2 para una integración más robusta en la nube.
+Este documento registra las funcionalidades que ya han sido integradas con éxito en la aplicación, así como los cimientos para futuras expansiones.
 
 ---
 
-## 2. API Propia y Conexión con Agentes Inteligentes 🤖
-**Objetivo:** Convertir la aplicación en un "hub de memoria" accesible para agentes externos (como un agente de WhatsApp).
+## 🎨 Estética y Diseño (Finalizado)
+- **Tema Vintage "Personal Archives"**: Lavado de cara completo inspirado en archivos históricos y cuadernos de cuero de lujo.
+- **Modo Oscuro Adaptativo**: Sistema de temas persistente que cambia entre una estética de "papel viejo" y una "oficina nocturna".
+- **Iconografía Premium**: Nuevo icono de aplicación con acabado en cuero y sello de cera de **Nano Banana**.
+- **Tipografía Clásica**: Uso de fuentes Serif y Cursivas para una experiencia de lectura profesional.
 
-### Detalles:
-- **El Concepto:** Permitir que un agente inteligente (ej. GPT-4, gemma-3) pueda leer, crear o modificar notas sin intervención manual del usuario en la interfaz.
-- **Flujo de Trabajo:** 
-  1. El usuario habla con su agente de WhatsApp: *"Recuérdame comprar pan a las 7 PM"*.
-  2. El agente procesa la petición y hace una llamada a la API de Note-Reminder.
-  3. La nota aparece instantáneamente en la pantalla principal de la aplicación.
-- **Tecnología sugerida:**
-  - **Backend/Cloud:** Firebase Firestore o Supabase para sincronización en tiempo real y persistencia en la nube (sustituyendo o complementando el `AsyncStorage` actual).
-  - **Autenticación:** Sistema de API Keys para que solo los agentes autorizados puedan conectar.
-  - **Push Notifications:** Para avisar a la app que un agente ha creado una nota nueva.
+## 📅 Sincronización e Integración (Finalizado)
+- **Google Calendar API**: Sincronización bidireccional de eventos. Permite elegir la cuenta de Google, configurar alarmas y personalizar la duración de la estancia en el calendario.
+- **Alarmas de Sistema**: Integración con las notificaciones de Android y creación de alarmas nativas en la aplicación de Reloj.
+- **Gestión de Calendarios**: Modal con scroll para ver y seleccionar entre todas tus cuentas primarias de Google.
 
----
+## 🎙️ Asistente de Voz (Finalizado)
+- **Creación Inteligente**: Flujo unificado para dictar el título, el contenido y la hora de la nota en una sola sesión de voz.
+- **Parsing Nativo**: Procesamiento de los datos dictados para pre-rellenar el formulario de creación.
 
-## 3. Notas por Voz (Voice Assistant Enhancement) 🎙️
-**Objetivo:** Mejorar el flujo de creación por voz ya iniciado.
-
-### Detalles:
-- **Refinamiento:** Mejorar el parsing de fechas naturales (ej: "mañana a las ocho") usando NLP local o vía API.
-- **Feedback:** Añadir confirmación sonora al completar una nota exitosamente mediante voz.
+## 🤖 Capa de API para Agentes (Finalizado)
+- **AgentAPIService**: Implementación de la base de servicios que permite a futuros agentes de IA externos leer, buscar y crear registros periódicos en el archivo de forma programática.
 
 ---
 
-## 4. Implementado ✅
-- **Estética Vintage (Personal Archives):** Lavado de cara completo con modo oscuro, tipografía clásica y nuevos iconos premium.
-- **Integración con Google Calendar 📅:** Sincronización automática de eventos con selección de cuenta y duración personalizada.
-- **Notas por Voz (Voice Assistant) 🎙️:** Flujo inteligente para dictar título, descripción y alarma en una sola sesión.
-- **Alarmas de Sistema (Android):** Creación de alarmas en la aplicación de Reloj nativa de Android.
-- **API Foundation (AgentAPIService):** Creada la capa de servicios para futuras integraciones programáticas con agentes de IA.
-
----
-
-> [!TIP]
-> Priorizar la **API/Sincronización en la nube** permitirá desbloquear el potencial de usar la app como la interfaz visual de un asistente de IA personal.
+## 🚀 Próximos Pasos (En Planificación)
+- **Sincronización en la Nube**: Uso de Firebase/Supabase para que las notas sean accesibles desde múltiples dispositivos.
+- **Exportación de Legajos**: Posibilidad de exportar notas individuales o colecciones completas en PDF con estilo de documento antiguo.
+- **Conectores de Agentes**: Implementación de WebSockets para comunicación en tiempo real con agentes de WhatsApp o asistentes locales.
