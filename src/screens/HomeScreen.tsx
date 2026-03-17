@@ -142,7 +142,7 @@ export default function HomeScreen({ navigation }: Props) {
       <View style={styles.vintageHeader}>
         <View>
           <Text style={[styles.vintageSub, { color: theme.subText }]}>THE COLLECTION OF</Text>
-          <Text style={[styles.title, { color: theme.text }]}>Mementos</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Archives</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity 
@@ -202,7 +202,7 @@ export default function HomeScreen({ navigation }: Props) {
       >
         <View style={styles.infoOverlay}>
           <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Manual de Mementos</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Manual de Archives</Text>
             <ScrollView style={styles.infoContent}>
               <InfoItem icon="add-circle" title="Crear Notas" desc="Usa el botón '+' para añadir una nueva nota. Puedes dictarla con el micrófono." theme={theme} />
               <InfoItem icon="alarm" title="Alarmas" desc="Activa 'Enable Alarm' para recibir una notificación en la hora elegida." theme={theme} />

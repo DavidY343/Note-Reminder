@@ -1,11 +1,11 @@
-# ✅ Logros y Funcionalidades - Mementos
+# ✅ Logros y Funcionalidades - Archives
 
 Este documento registra las funcionalidades que ya han sido integradas con éxito en la aplicación, así como los cimientos para futuras expansiones.
 
 ---
 
 ## 🎨 Estética y Diseño (Finalizado)
-- **Tema Vintage "Mementos"**: Lavado de cara completo inspirado en archivos históricos y cuadernos de cuero de lujo.
+- **Tema Vintage "Archives"**: Lavado de cara completo inspirado en archivos históricos y cuadernos de cuero de lujo.
 - **Modo Oscuro Adaptativo**: Sistema de temas persistente que cambia entre una estética de "papel viejo" y una "oficina nocturna".
 - **Iconografía Premium**: Nuevo icono de aplicación con acabado en cuero y sello de cera de **Nano Banana**.
 - **Tipografía Clásica**: Uso de fuentes Serif y Cursivas para una experiencia de lectura profesional.
