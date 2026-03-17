@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Note-Reminder",
+    "slug": "Note-Reminder",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs access to the microphone to create notes via voice.",
+        "NSSpeechRecognitionUsageDescription": "This app uses speech recognition to convert your voice into text notes.",
+        "NSCalendarsUsageDescription": "This app needs access to your calendar to sync your notes with a date.",
+        "NSRemindersUsageDescription": "This app needs access to your reminders."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4e342e",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.davidym343.NoteReminder",
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "com.android.alarm.permission.SET_ALARM"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Permite el uso del micrófono para crear notas con tu voz.",
+          "speechRecognitionPermission": "Permite convertir tu voz en texto para las notas."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c5fff1ad-5e9c-4666-b076-3301815ef200"
+      }
+    }
+  }
+}
