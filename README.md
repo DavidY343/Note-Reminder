@@ -1,8 +1,8 @@
-# 📜 Archives - Vintage Note Reminder
+# 📜 Mementos - Vintage Note Reminder
 
 ![App Icon](./assets/icon.png)
 
-**Archives** is a premium, vintage-styled note-taking and reminder application built with React Native and Expo. It transforms your digital notes into a sophisticated physical-like archive, reminiscent of 19th-century stationery and luxury leather journals.
+**Mementos** is a premium, vintage-styled note-taking and reminder application built with React Native and Expo. It transforms your digital notes into a sophisticated physical-like archive, reminiscent of 19th-century stationery and luxury leather journals.
 
 ## 🖋️ The Aesthetic
 Buried the "hacker terminal" look. Welcome to the **Vintage Archive** theme:
@@ -34,7 +34,7 @@ Buried the "hacker terminal" look. Welcome to the **Vintage Archive** theme:
    ```
 
 ## 🤖 Future Implementations
-- **Agent API**: A planned REST/WebSocket API to allow external AI agents to read and manage your archives autonomously.
+- **Agent API**: A planned REST/WebSocket API to allow external AI agents to read and manage your mementos autonomously.
 - **Cloud Sync**: Optional encrypted cloud backup for multi-device access.
 - **Legacy Export**: Export notes in PDF format styled like high-end certificates.
 
