@@ -1,11 +1,15 @@
 {
   "expo": {
-    "name": "Archives",
-    "slug": "archives",
+    "name": "Mementos",
+    "slug": "Note-Reminder",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#4e342e"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
