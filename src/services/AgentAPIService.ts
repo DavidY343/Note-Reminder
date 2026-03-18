@@ -4,16 +4,16 @@ import { StorageService } from './StorageService';
 /**
  * AgentAPIService
  * This service provides a programmatic interface for external AI agents
- * to interact with the Personal Archives. It is the foundation for 
+ * to interact with the Personal Mementos. It is the foundation for 
  * future local API or WebSocket connectors.
  */
 export const AgentAPIService = {
   /**
-   * Retrieves all archives in a format optimized for AI context
+   * Retrieves all mementos in a format optimized for AI context
    */
-  async getArchivesForAgent(): Promise<string> {
+  async getMementosForAgent(): Promise<string> {
     const notes = await StorageService.getNotes();
-    if (notes.length === 0) return "The archive is currently empty.";
+    if (notes.length === 0) return "The library of mementos is currently empty.";
     
     return notes.map(note => {
       return `[ID: ${note.id}]
@@ -40,9 +40,9 @@ Reminder: ${note.alarmDate ? new Date(note.alarmDate).toLocaleString() : 'No ala
   },
 
   /**
-   * Search archives by keywords (useful for agents narrowing down context)
+   * Search mementos by keywords (useful for agents narrowing down context)
    */
-  async searchArchives(query: string): Promise<Note[]> {
+  async searchMementos(query: string): Promise<Note[]> {
     const notes = await StorageService.getNotes();
     const q = query.toLowerCase();
     return notes.filter(n => 
