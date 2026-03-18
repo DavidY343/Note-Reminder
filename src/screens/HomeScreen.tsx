@@ -10,6 +10,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { NotificationService } from '../services/NotificationService';
 import { CalendarService } from '../services/CalendarService';
 import * as Calendar from 'expo-calendar';
+import { HapticService } from '../services/HapticService';
 import { VoiceService } from '../services/VoiceService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -20,6 +21,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [availableCalendars, setAvailableCalendars] = useState<Calendar.Calendar[]>([]);
   const [darkMode, setDarkMode] = useState(false);
   const [isInfoVisible, setIsInfoVisible] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'reminders' | 'notes'>('all');
 
   useEffect(() => {
     loadTheme();
@@ -58,6 +60,7 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const deleteNote = async (id: string) => {
+    HapticService.impactMedium();
     const note = await StorageService.getNote(id);
     if (note?.calendarEventId) {
       await CalendarService.deleteCalendarEvent(note.calendarEventId);
@@ -81,8 +84,10 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const handleVoiceAssistant = async () => {
+    HapticService.notificationSuccess();
     const results = await VoiceService.startCreationFlow();
     if (results) {
+      HapticService.impactLight();
       // Navigate to CreateNote with the partial data
       navigation.navigate('CreateNote', { 
         initialTitle: results.title,
@@ -142,7 +147,7 @@ export default function HomeScreen({ navigation }: Props) {
       <View style={styles.vintageHeader}>
         <View>
           <Text style={[styles.vintageSub, { color: theme.subText }]}>THE COLLECTION OF</Text>
-          <Text style={[styles.title, { color: theme.text }]}>Archives</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Mementos</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity 
@@ -165,9 +170,35 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </View>
+
+      <View style={styles.filterBar}>
+        <TouchableOpacity 
+          style={[styles.filterBtn, filter === 'all' && [styles.filterBtnActive, { backgroundColor: theme.card, borderColor: theme.accent }]]}
+          onPress={() => setFilter('all')}
+        >
+          <Text style={[styles.filterText, { color: theme.subText }, filter === 'all' && { color: theme.accent }]}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.filterBtn, filter === 'reminders' && [styles.filterBtnActive, { backgroundColor: theme.card, borderColor: theme.accent }]]}
+          onPress={() => setFilter('reminders')}
+        >
+          <Text style={[styles.filterText, { color: theme.subText }, filter === 'reminders' && { color: theme.accent }]}>With Alarms</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.filterBtn, filter === 'notes' && [styles.filterBtnActive, { backgroundColor: theme.card, borderColor: theme.accent }]]}
+          onPress={() => setFilter('notes')}
+        >
+          <Text style={[styles.filterText, { color: theme.subText }, filter === 'notes' && { color: theme.accent }]}>Notes Only</Text>
+        </TouchableOpacity>
+      </View>
       
       <FlatList
-        data={notes}
+        data={notes.filter(n => {
+          if (filter === 'all') return true;
+          if (filter === 'reminders') return !!n.alarmDate;
+          if (filter === 'notes') return !n.alarmDate;
+          return true;
+        })}
         renderItem={renderNote}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
@@ -202,14 +233,14 @@ export default function HomeScreen({ navigation }: Props) {
       >
         <View style={styles.infoOverlay}>
           <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Manual de Archives</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Manual de Mementos</Text>
             <ScrollView style={styles.infoContent}>
-              <InfoItem icon="add-circle" title="Crear Notas" desc="Usa el botón '+' para añadir una nueva nota. Puedes dictarla con el micrófono." theme={theme} />
+              <InfoItem icon="mic" title="Asistente de Voz" desc="Pulsa el micrófono para dictar. Espera al pitido antes de empezar a hablar para que el sistema capture todo." theme={theme} />
+              <InfoItem icon="add-circle" title="Crear Notas" desc="Usa el botón '+' para añadir una nueva nota manualmente." theme={theme} />
               <InfoItem icon="alarm" title="Alarmas" desc="Activa 'Enable Alarm' para recibir una notificación en la hora elegida." theme={theme} />
               <InfoItem icon="calendar" title="Google Calendar" desc="Las notas con alarma se sincronizan automáticamente con tu cuenta elegida." theme={theme} />
-              <InfoItem icon="time" title="Duración" desc="Elige cuánto tiempo ocupará la nota en tu calendario (30m, 1h, etc)." theme={theme} />
-              <InfoItem icon="settings" title="Cuentas" desc="Cambia tu cuenta de Google pulsando el icono del cuaderno." theme={theme} />
-              <InfoItem icon="swap-horizontal" title="Borrar" desc="Desliza una nota a la izquierda para eliminarla del sistema y del calendario." theme={theme} />
+              <InfoItem icon="journal-outline" title="Cuentas" desc="Cambia tu cuenta de Google pulsando el icono del cuaderno." theme={theme} />
+              <InfoItem icon="swap-horizontal" title="Borrar" desc="Desliza una nota a la izquierda para borrarla del sistema." theme={theme} />
             </ScrollView>
             <TouchableOpacity 
               style={[styles.closeFab, { backgroundColor: theme.accent }]} 
@@ -311,6 +342,26 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 20,
     paddingBottom: 100,
+  },
+  filterBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 8,
+  },
+  filterBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterBtnActive: {
+    borderWidth: 1,
+  },
+  filterText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   noteWrapper: {
     marginBottom: 16,

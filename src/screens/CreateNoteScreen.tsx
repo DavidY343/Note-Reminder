@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, TextInput, Switch, 
-  TouchableOpacity, ScrollView, Platform, Alert 
+  TouchableOpacity, ScrollView, Platform, Alert, Dimensions
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -9,11 +9,34 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { StorageService } from '../services/StorageService';
 import { NotificationService } from '../services/NotificationService';
 import { CalendarService } from '../services/CalendarService';
+import { AgentAPIService } from '../services/AgentAPIService';
 import * as Calendar from 'expo-calendar';
+import { HapticService } from '../services/HapticService';
 import { Note } from '../types/note';
 import { Ionicons } from '@expo/vector-icons';
+import { Toast } from '../components/Toast';
+
+const { width } = Dimensions.get('window');
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateNote'>;
+
+function ChoiceChip({ icon, label, active, onPress, theme, disabled }: any) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.chip,
+        { borderColor: theme.border, backgroundColor: theme.bg },
+        active && { backgroundColor: theme.accent, borderColor: theme.accent },
+        disabled && { opacity: 0.3 }
+      ]}
+      onPress={disabled ? undefined : onPress}
+      activeOpacity={disabled ? 0.3 : 0.7}
+    >
+      <Ionicons name={icon} size={16} color={active ? '#fff' : theme.accent} />
+      <Text style={[styles.chipText, { color: theme.text }, active && { color: '#fff' }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function CreateNoteScreen({ route, navigation }: Props) {
   const noteId = route.params?.noteId;
@@ -24,13 +47,19 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
   const [title, setTitle] = useState('');
   const [concept, setConcept] = useState('');
   const [hasAlarm, setHasAlarm] = useState(false);
+  const [useLocalAlarm, setUseLocalAlarm] = useState(true);
+  const [syncToCalendar, setSyncToCalendar] = useState(false);
   const [useSystemAlarm, setUseSystemAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState(new Date());
+  const [alarmOffset, setAlarmOffset] = useState(60);
   const [calendarEventId, setCalendarEventId] = useState<string | undefined>(undefined);
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [isCustomDuration, setIsCustomDuration] = useState(false);
   const [customDurationValue, setCustomDurationValue] = useState('15');
   const [darkMode, setDarkMode] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  const isSystemAlarmSelectable = (alarmDate.getTime() - Date.now()) < (24 * 60 * 60 * 1000);
 
   useEffect(() => {
     loadTheme();
@@ -50,7 +79,7 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
     border: darkMode ? '#404040' : '#d7ccc8',
     inputBg: darkMode ? '#2d2d2d' : '#fff',
   };
-  
+
   // For Android since it only shows Date OR Time per picker
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -65,6 +94,10 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
       if (initialAlarmDate) {
         setAlarmDate(new Date(initialAlarmDate));
         setHasAlarm(true);
+        // Only local by default per user request
+        setUseLocalAlarm(true);
+        setSyncToCalendar(false);
+        setUseSystemAlarm(false);
       }
     }
   }, [noteId, initialTitle, initialConcept, initialAlarmDate]);
@@ -77,9 +110,12 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
       if (note.alarmDate) {
         setHasAlarm(true);
         setAlarmDate(new Date(note.alarmDate));
+        setUseLocalAlarm(!!note.useLocalAlarm);
+        setSyncToCalendar(!!note.syncToCalendar);
         setUseSystemAlarm(!!note.useSystemAlarm);
+        setAlarmOffset(note.alarmOffset || 0);
         setCalendarEventId(note.calendarEventId);
-        const dur = note.durationMinutes || 30;
+          const dur = note.durationMinutes || 30;
         setDurationMinutes(dur);
         if (![30, 60, 120].includes(dur)) {
           setIsCustomDuration(true);
@@ -100,32 +136,45 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
       title: title.trim(),
       concept: concept.trim(),
       alarmDate: hasAlarm ? alarmDate.toISOString() : undefined,
+      useLocalAlarm: hasAlarm ? useLocalAlarm : false,
+      syncToCalendar: hasAlarm ? syncToCalendar : false,
       useSystemAlarm: hasAlarm ? useSystemAlarm : false,
       calendarEventId,
       durationMinutes: hasAlarm ? (isCustomDuration ? parseInt(customDurationValue) || 30 : durationMinutes) : undefined,
+      alarmOffset: hasAlarm ? alarmOffset : 0,
     };
 
-    // Sync to Calendar
-    if (hasAlarm) {
-      const eventId = await CalendarService.syncNoteToCalendar(newNote);
-      newNote.calendarEventId = eventId;
-      setCalendarEventId(eventId);
-    } else if (calendarEventId) {
-      await CalendarService.deleteCalendarEvent(calendarEventId);
-      newNote.calendarEventId = undefined;
-      setCalendarEventId(undefined);
-    }
+    try {
+      // Sync to Calendar
+      if (hasAlarm && syncToCalendar) {
+        const eventId = await CalendarService.syncNoteToCalendar(newNote);
+        newNote.calendarEventId = eventId;
+        setCalendarEventId(eventId);
+      } else if (calendarEventId) {
+        await CalendarService.deleteCalendarEvent(calendarEventId);
+        newNote.calendarEventId = undefined;
+        setCalendarEventId(undefined);
+      }
 
-    await StorageService.saveNote(newNote);
-    
-    // Schedule or cancel notification
-    if (hasAlarm) {
-      await NotificationService.scheduleNoteAlarm(newNote);
-    } else {
-      await NotificationService.cancelNoteAlarm(newNote.id);
+      await StorageService.saveNote(newNote);
+
+      // Schedule or cancel notification
+      if (hasAlarm && useLocalAlarm) {
+        await NotificationService.scheduleNoteAlarm(newNote);
+      } else {
+        await NotificationService.cancelNoteAlarm(newNote.id);
+      }
+
+      HapticService.notificationSuccess();
+      setShowToast(true);
+
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to save note:", error);
+      Alert.alert("Error", "Failed to save memento. Please try again.");
     }
-    
-    navigation.goBack();
   };
 
   const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -151,6 +200,7 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
       if (calendarEventId) {
         await CalendarService.deleteCalendarEvent(calendarEventId);
       }
+      HapticService.impactMedium();
       await NotificationService.cancelNoteAlarm(noteId);
       await StorageService.deleteNote(noteId);
       navigation.goBack();
@@ -158,13 +208,14 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={28} color={theme.accent} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
-          {noteId ? 'Edit Record' : 'New Entry'}
+          {noteId ? 'Edit Memento' : 'New Entry'}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -197,8 +248,8 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
       <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <View style={styles.switchRow}>
           <View style={styles.rowLabelGroup}>
-            <Ionicons name="notifications-outline" size={22} color={theme.accent} />
-            <Text style={[styles.switchLabel, { color: theme.text }]}>Schedule Reminder</Text>
+            <Ionicons name="timer-outline" size={22} color={theme.accent} />
+            <Text style={[styles.switchLabel, { color: theme.text }]}>Schedule Setup</Text>
           </View>
           <Switch
             value={hasAlarm}
@@ -210,109 +261,163 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
 
         {hasAlarm && (
           <View style={styles.alarmContent}>
-            <TouchableOpacity 
-              style={[styles.dateTimeBtn, { backgroundColor: theme.bg, borderColor: theme.border }]} 
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Ionicons name="calendar-outline" size={20} color={theme.accent} />
-              <Text style={[styles.dateTimeText, { color: theme.text }]}>
-                {alarmDate.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.dateTimeRow}>
+              <TouchableOpacity
+                style={[styles.dateTimeBtnCompact, { backgroundColor: theme.bg, borderColor: theme.border }]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={18} color={theme.accent} />
+                <Text style={[styles.dateTimeText, { color: theme.text }]}>
+                  {alarmDate.toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.dateTimeBtn, { backgroundColor: theme.bg, borderColor: theme.border }]} 
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Ionicons name="time-outline" size={20} color={theme.accent} />
-              <Text style={[styles.dateTimeText, { color: theme.text }]}>
-                {alarmDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </TouchableOpacity>
-            
-            {Platform.OS === 'android' && (
-              <View style={styles.systemAlarmRow}>
-                <Text style={[styles.systemAlarmLabel, { color: theme.subText }]}>Create Android Clock Alarm</Text>
-                <Switch
-                  value={useSystemAlarm}
-                  onValueChange={setUseSystemAlarm}
-                  trackColor={{ false: darkMode ? '#333' : '#d1d5db', true: theme.accent }}
-                  thumbColor="#fff"
-                />
+              <TouchableOpacity
+                style={[styles.dateTimeBtnCompact, { backgroundColor: theme.bg, borderColor: theme.border }]}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Ionicons name="time-outline" size={18} color={theme.accent} />
+                <Text style={[styles.dateTimeText, { color: theme.text }]}>
+                  {alarmDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.syncGrid, { borderTopColor: theme.border }]}>
+               <Text style={[styles.miniLabel, { color: theme.subText }]}>ALERT DESTINATIONS</Text>
+               <View style={styles.syncRowNew}>
+                  <ChoiceChip
+                    icon="notifications-outline"
+                    label="Local"
+                    active={useLocalAlarm}
+                    onPress={() => setUseLocalAlarm(!useLocalAlarm)}
+                    theme={theme}
+                  />
+                  <ChoiceChip
+                    icon="logo-google"
+                    label="Calendar"
+                    active={syncToCalendar}
+                    onPress={() => setSyncToCalendar(!syncToCalendar)}
+                    theme={theme}
+                  />
+                  {Platform.OS === 'android' && (
+                    <View style={{ flex: 1 }}>
+                      <ChoiceChip
+                        icon="alarm-outline"
+                        label="System"
+                        active={useSystemAlarm && isSystemAlarmSelectable}
+                        onPress={() => setUseSystemAlarm(!useSystemAlarm)}
+                        theme={theme}
+                        disabled={!isSystemAlarmSelectable}
+                      />
+                      {!isSystemAlarmSelectable && (
+                        <Text style={[styles.tipText, { color: theme.subText }]}>* Only for next 24h</Text>
+                      )}
+                      </View>
+                    )}
+               </View>
+            </View>
+
+            {useSystemAlarm && (
+              <View style={[styles.offsetSection, { borderTopColor: theme.border }]}>
+                 <Text style={[styles.miniLabel, { color: theme.subText }]}>REMINDER OFFSET (FOR SYSTEM ALARM)</Text>
+                 <View style={styles.offsetRow}>
+                    {[0, 10, 30, 60].map((offset) => (
+                      <TouchableOpacity
+                        key={offset}
+                        style={[
+                          styles.offsetBtn,
+                          { borderColor: theme.border, backgroundColor: theme.bg },
+                          alarmOffset === offset && { backgroundColor: theme.accent, borderColor: theme.accent }
+                        ]}
+                        onPress={() => setAlarmOffset(offset)}
+                      >
+                        <Text style={[
+                          styles.offsetBtnText,
+                          { color: theme.text },
+                          alarmOffset === offset && { color: '#fff' }
+                        ]}>
+                          {offset === 0 ? 'At Time' : offset === 60 ? '1h before' : `${offset}m before`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                 </View>
               </View>
             )}
 
-            <View style={[styles.durationSection, { borderTopColor: theme.border }]}>
-              <Text style={[styles.durationLabel, { color: theme.subText }]}>Session Duration</Text>
-              <View style={styles.durationRow}>
-                {[30, 60, 120].map((min) => (
+            {syncToCalendar && (
+              <View style={[styles.durationSection, { borderTopColor: theme.border }]}>
+                <Text style={[styles.durationLabel, { color: theme.subText }]}>Calendar Event Duration</Text>
+                <View style={styles.durationRow}>
+                  {[30, 60, 120].map((min) => (
+                    <TouchableOpacity
+                      key={min}
+                      style={[
+                        styles.durationBtn,
+                        { backgroundColor: theme.bg, borderColor: theme.border },
+                        (!isCustomDuration && durationMinutes === min) && [styles.durationBtnActive, { backgroundColor: theme.accent, borderColor: theme.accent }]
+                      ]}
+                      onPress={() => {
+                        setDurationMinutes(min);
+                        setIsCustomDuration(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.durationBtnText,
+                        { color: theme.subText },
+                        (!isCustomDuration && durationMinutes === min) && styles.durationBtnTextActive
+                      ]}>
+                        {min < 60 ? `${min}m` : `${min / 60}h`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  
                   <TouchableOpacity
-                    key={min}
                     style={[
                       styles.durationBtn,
                       { backgroundColor: theme.bg, borderColor: theme.border },
-                      (!isCustomDuration && durationMinutes === min) && [styles.durationBtnActive, { backgroundColor: theme.accent, borderColor: theme.accent }]
+                      isCustomDuration && [styles.durationBtnActive, { backgroundColor: theme.accent, borderColor: theme.accent }]
                     ]}
-                    onPress={() => {
-                      setDurationMinutes(min);
-                      setIsCustomDuration(false);
-                    }}
+                    onPress={() => setIsCustomDuration(true)}
                   >
                     <Text style={[
                       styles.durationBtnText,
                       { color: theme.subText },
-                      (!isCustomDuration && durationMinutes === min) && styles.durationBtnTextActive
+                      isCustomDuration && styles.durationBtnTextActive
                     ]}>
-                      {min < 60 ? `${min}m` : `${min / 60}h`}
+                      Custom
                     </Text>
                   </TouchableOpacity>
-                ))}
-                
-                <TouchableOpacity
-                  style={[
-                    styles.durationBtn,
-                    { backgroundColor: theme.bg, borderColor: theme.border },
-                    isCustomDuration && [styles.durationBtnActive, { backgroundColor: theme.accent, borderColor: theme.accent }]
-                  ]}
-                  onPress={() => setIsCustomDuration(true)}
-                >
-                  <Text style={[
-                    styles.durationBtnText,
-                    { color: theme.subText },
-                    isCustomDuration && styles.durationBtnTextActive
-                  ]}>
-                    Custom
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {isCustomDuration && (
-                <View style={styles.customDurationInputRow}>
-                  <TextInput
-                    style={[styles.customDurationInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
-                    keyboardType="number-pad"
-                    value={customDurationValue}
-                    onChangeText={setCustomDurationValue}
-                    placeholder="Mins"
-                    placeholderTextColor={darkMode ? '#555' : '#ccc'}
-                  />
-                  <Text style={[styles.minutesLabel, { color: theme.subText }]}>minutes</Text>
                 </View>
-              )}
-            </View>
+
+                {isCustomDuration && (
+                  <View style={styles.customDurationInputRow}>
+                    <TextInput
+                      style={[styles.customDurationInput, { backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }]}
+                      keyboardType="number-pad"
+                      value={customDurationValue}
+                      onChangeText={setCustomDurationValue}
+                      placeholder="Mins"
+                      placeholderTextColor={darkMode ? '#555' : '#ccc'}
+                    />
+                    <Text style={[styles.minutesLabel, { color: theme.subText }]}>minutes</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         )}
       </View>
 
       <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.accent }]} onPress={handleSave}>
         <Ionicons name="checkmark-done" size={24} color="#fff" />
-        <Text style={styles.saveButtonText}>Store Record</Text>
+        <Text style={styles.saveButtonText}>Store Memento</Text>
       </TouchableOpacity>
 
       {noteId && (
         <TouchableOpacity style={styles.discardAction} onPress={handleDelete}>
           <Ionicons name="trash-bin-outline" size={20} color="#b71c1c" />
-          <Text style={styles.discardText}>Discard this record</Text>
+          <Text style={styles.discardText}>Discard Memento</Text>
         </TouchableOpacity>
       )}
 
@@ -335,7 +440,15 @@ export default function CreateNoteScreen({ route, navigation }: Props) {
           onChange={onChangeTime}
         />
       )}
-    </ScrollView>
+      </ScrollView>
+
+      <Toast 
+        message="Memento saved in collection" 
+        visible={showToast} 
+        onHide={() => setShowToast(false)} 
+        theme={theme} 
+      />
+    </View>
   );
 }
 
@@ -434,6 +547,75 @@ const styles = StyleSheet.create({
   },
   systemAlarmLabel: {
     fontSize: 14,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateTimeBtnCompact: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  offsetSection: {
+    marginTop: 8,
+    paddingTop: 15,
+    borderTopWidth: 1,
+  },
+  offsetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  offsetBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  offsetBtnText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  syncGrid: {
+    marginTop: 8,
+    paddingTop: 15,
+    borderTopWidth: 1,
+  },
+  syncRowNew: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  tipText: {
+    fontSize: 8,
+    marginTop: 4,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   durationSection: {
     marginTop: 10,
